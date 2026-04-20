@@ -1,4 +1,5 @@
 ---
+name: deploy
 description: >-
   Use when the user wants to deploy, push to production, or ship their site/app to xhost.
 tools: Bash, Read, Glob, Grep

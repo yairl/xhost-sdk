@@ -1,4 +1,5 @@
 ---
+name: init
 description: >-
   Use when the user wants to create an xhost app and connect this project to xhost for hosting. Supports static sites, Node.js, and Python applications.
 tools: Bash, Read, Glob, Grep, Write

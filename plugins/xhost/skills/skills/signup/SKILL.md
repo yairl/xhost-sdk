@@ -1,4 +1,5 @@
 ---
+name: signup
 description: >-
   Use when the user wants to create a new xhost account or sign up for xhost.
 tools: Bash, Read, Glob, Grep

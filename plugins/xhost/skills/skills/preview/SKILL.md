@@ -1,4 +1,5 @@
 ---
+name: preview
 description: >-
   Use when the user wants to deploy a preview of their current branch, create a preview URL, or test a branch on xhost.
 tools: Bash, Read, Glob, Grep

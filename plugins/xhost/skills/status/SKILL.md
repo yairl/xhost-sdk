@@ -1,5 +1,4 @@
 ---
-name: status
 description: >-
   Use when the user wants to check deployment status, see their apps, channels, or hostnames on xhost.
 tools: Bash, Read, Glob, Grep

@@ -1,29 +1,41 @@
 ---
+name: status
 description: >-
-  Use when the user wants to configure their xhost token or log in to xhost.
+  Use when the user wants to check deployment status, see their apps, channels, or hostnames on xhost.
 tools: Bash, Read, Glob, Grep
 ---
 
-# xhost — Login
+# xhost — Status
+
+## Current Context
+
+- Working directory: !`pwd`
+- Git remotes: !`git remote -v`
+- Current branch: !`git branch --show-current`
+- Latest commit: !`git log --oneline -1`
 
 ## Pre-flight
 
-Before starting, run `printenv XHOST_TOKEN` to check if the user already has a token set.
+Before starting, run `printenv XHOST_TOKEN` to verify the user has a token set. If not, direct them to `/login` or `/signup`.
 
-## Configure an existing token
+## Show deployment status
 
-The user already has an xhost account and token. Help them configure it.
+Display apps, channels, hostnames, and current deploy state.
 
-1. Ask the user for their `xh_*` token.
-2. Validate the token by calling:
+1. **Check XHOST_TOKEN** — if not set, tell the user to run `/xhost:login` or `/xhost:signup` first and stop.
+2. **List apps**:
    ```
-   curl -sf -H "Authorization: Bearer <token>" ${XHOST_API_URL:-https://api.xhostd.com}/apps
+   curl -sf "${XHOST_API_URL:-https://api.xhostd.com}/apps" -H "Authorization: Bearer $XHOST_TOKEN"
    ```
-3. If the request fails, tell the user the token is invalid or the API is unreachable.
-4. If valid, tell the user to set it:
-   - For the current session: `export XHOST_TOKEN=xh_...`
-   - For persistence: add `export XHOST_TOKEN=xh_...` to their shell profile (`~/.bashrc`, `~/.zshrc`, etc.)
-5. Report success. If the response contains app data, mention the username or number of apps.
+3. If the `xhost` git remote exists, show only the app whose `repo_url` matches. Otherwise, show all apps.
+4. For each app, display a table or formatted list:
+   - **App name**
+   - For each channel:
+     - Channel name
+     - URL: `https://<hostname>`
+     - Binding: `git_ref_binding` value
+     - SHA: first 7 characters of `current_sha`, or "not deployed"
+     - Status: `status` value
 
 ---
 

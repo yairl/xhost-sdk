@@ -1,4 +1,5 @@
 ---
+name: login
 description: >-
   Use when the user wants to configure their xhost token or log in to xhost.
 tools: Bash, Read, Glob, Grep

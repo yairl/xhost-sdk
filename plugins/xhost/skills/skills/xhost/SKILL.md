@@ -1,4 +1,5 @@
 ---
+name: xhost
 description: >-
   Use when the user wants to deploy a website, host a static site, put something
   online, publish a page, create a preview URL, check deployment status, or
