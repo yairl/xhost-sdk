@@ -1,15 +1,23 @@
 ---
 description: >-
-  Use when the user wants to deploy a website, host a static site, put something
-  online, publish a page, create a preview URL, check deployment status, or
-  mentions xhost. Handles account setup, app creation, git push, deploy status,
-  and preview channels via the xhost hosting platform.
-tools: Bash, Read, Glob, Grep
+  Use when the user wants to deploy a website or app, host a static site, put
+  something online, publish a page, create a preview URL, check deployment
+  status, sign up for xhost, configure a token, or mentions xhost in any way.
+  This skill handles everything: account setup, app creation, deploys, previews,
+  and status checks.
+tools: Bash, Read, Glob, Grep, Write
 ---
 
-# xhost Static Site Hosting
+# xhost — Hosting Platform
 
-xhost is a hosting platform for static sites and dynamic applications. You push code to a git remote and then trigger a deploy via the API. Every app gets a production URL, and you can create preview URLs for branches.
+xhost is a hosting platform for static sites and dynamic applications. You push code to a git remote, then trigger a deploy via the API. Every app gets a production HTTPS URL, and you can create preview URLs for branches.
+
+## Current Context
+
+- Working directory: !`pwd`
+- Git remotes: !`git remote -v`
+- Current branch: !`git branch --show-current`
+- Latest commit: !`git log --oneline -1`
 
 ## Prerequisites
 
@@ -24,118 +32,206 @@ Check if they are set:
 echo "API URL: ${XHOST_API_URL:-https://api.xhostd.com}"
 ```
 
-If the token is not set, guide the user through signup or login. See `/xhost:login` or `/xhost:signup` for explicit flows.
+If the token is not set, guide the user through signup or login (see the Signup and Login sections below).
 
-## Account Setup
+---
 
-New users need an **invite code** (format: `xi_...`) from an admin. Signup is a single API call:
+## Signup — Create a New Account
 
-```bash
-curl -sf -X POST "${XHOST_API_URL:-https://api.xhostd.com}/admin/signup" \
-  -H "Content-Type: application/json" \
-  -d '{"invite":"xi_...","username":"chosen-name","email":"user@example.com"}'
-```
+Create a new xhost account without leaving Claude Code.
 
-The response includes a `token` field (`xh_...`) that the user must export as `XHOST_TOKEN`.
+1. Ask the user for their **invite code** (format: `xi_...`). Every new account requires one.
+2. Ask for a **username**. Rules: lowercase letters, digits, hyphens, 1-40 chars, no leading/trailing hyphen.
+3. Optionally ask for an **email** address.
+4. Call the signup endpoint:
+   ```
+   curl -sf -X POST "${XHOST_API_URL:-https://api.xhostd.com}/admin/signup" \
+     -H "Content-Type: application/json" \
+     -d '{"invite":"<invite_code>","username":"<username>","email":"<email_or_null>"}'
+   ```
+5. On success: extract the `token` field (`xh_...`) and tell the user:
+   - `export XHOST_TOKEN=xh_...` (session)
+   - Add to shell profile for persistence
+6. Common errors:
+   - `"invite is invalid or already used"` — wrong or consumed invite
+   - `"username is already taken"` — pick a different username
 
-Usernames must follow DNS label rules: lowercase letters, digits, hyphens, 1-40 characters, no leading or trailing hyphen.
+---
 
-## Creating Apps
+## Login — Configure an Existing Token
 
-Each app is a git repository with at least one channel (the `prod` channel, created automatically).
+The user already has an xhost account and token.
 
-```bash
-curl -sf -X POST "${XHOST_API_URL}/apps" \
-  -H "Authorization: Bearer $XHOST_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"my-app"}'
-```
+1. Ask the user for their `xh_*` token.
+2. Validate by calling:
+   ```
+   curl -sf -H "Authorization: Bearer <token>" ${XHOST_API_URL:-https://api.xhostd.com}/apps
+   ```
+3. If invalid, tell the user. If valid, tell them to:
+   - `export XHOST_TOKEN=xh_...` (session)
+   - Add to shell profile for persistence
 
-The response includes `repo_url` (the git remote to push to) and a `channels` array with the prod channel's `hostname`. App names follow the same DNS label rules as usernames, plus they cannot use reserved prefixes: `git`, `api`, `www`, `admin`, `preview`, `staging`.
+---
 
-After creating the app, add the git remote with the token embedded for push authentication:
-```bash
-git remote add xhost "https://${XHOST_TOKEN}@git.xhostd.com/<username>/<app>.git"
-```
+## Init — Create an App and Connect This Project
 
-## How Deploys Work
+Set up a new xhost app linked to the current git repository.
 
-Deploying is a two-step process: push code, then trigger the deploy.
+1. **Check XHOST_TOKEN** — if not set, guide the user through signup or login first.
+2. **Check XHOST_API_URL** — default to `https://api.xhostd.com`.
+3. **Derive app name** from the current directory name. Slugify to DNS label rules (lowercase, replace non-alphanumeric with hyphens, trim, max 40 chars). Reserved prefixes: `git`, `api`, `www`, `admin`, `preview`, `staging`. Ask the user to confirm.
+4. **Detect template and generate scripts** — follow this detection order:
+   a. **launch.sh exists** — use `template: "app"`, do not overwrite. Tell user: "Found existing launch.sh."
+   b. **Node.js project** — if `package.json` exists with `scripts.start`:
+      - Generate `install.sh`:
+        ```sh
+        #!/bin/sh
+        set -e
+        if [ -f package-lock.json ]; then npm ci; else npm install; fi
+        ```
+      - Generate `launch.sh`:
+        ```sh
+        #!/bin/sh
+        set -e
+        if node -e "process.exit(require('./package.json').scripts?.build?0:1)" 2>/dev/null; then
+            npm run build
+        fi
+        exec npm start
+        ```
+      - Tell user: "Detected Node.js project. Created install.sh and launch.sh."
+      - Template: `"app"`.
+   c. **Python project** — if `requirements.txt` exists:
+      - Generate `install.sh`:
+        ```sh
+        #!/bin/sh
+        set -e
+        uv pip install --system --no-cache -r requirements.txt
+        ```
+      - Detect entry point: check for `app.py`, `main.py`, `manage.py` in order.
+      - Generate `launch.sh`:
+        ```sh
+        #!/bin/sh
+        set -e
+        exec python <entry_point>
+        ```
+      - Template: `"app"`.
+   d. **Otherwise** — template `"static"`. No scripts needed.
+5. **Create the app**:
+   ```
+   curl -sf -X POST "${XHOST_API_URL:-https://api.xhostd.com}/apps" \
+     -H "Authorization: Bearer $XHOST_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"name":"<app_name>","template":"<template>"}'
+   ```
+6. Parse the response — it returns `id`, `repo_url`, `template`, and `channels` (with the prod channel's `hostname`).
+7. **Add the git remote** — insert the token before the hostname in `repo_url`:
+   ```
+   git remote add xhost "https://${XHOST_TOKEN}@git.xhostd.com/<username>/<app>.git"
+   ```
+8. If no commits exist, stage everything and create an initial commit. If generated scripts aren't committed, stage and commit them.
+9. **Push**:
+   ```
+   git push xhost master
+   ```
+10. **Deploy** — get the SHA and trigger the deploy:
+    ```
+    SHA=$(git rev-parse HEAD)
+    curl -sf -X POST "${XHOST_API_URL:-https://api.xhostd.com}/apps/<app_id>/channels/<channel_id>/deploy" \
+      -H "Authorization: Bearer $XHOST_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{"sha":"'"$SHA"'"}'
+    ```
+11. Report: **"App created and deployed! Live at https://\<hostname\>"**
+    - Mention that future deploys are: `git push xhost master` then use the Deploy flow below.
+    - For app-template projects: first deploy takes 30-90s (install.sh runs).
 
-```bash
-# 1. Push code to the xhost remote
-git push xhost master
+---
 
-# 2. Trigger the deploy
-SHA=$(git rev-parse HEAD)
-curl -sf -X POST "${XHOST_API_URL}/apps/<app_id>/channels/<channel_id>/deploy" \
-  -H "Authorization: Bearer $XHOST_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"sha":"'"$SHA"'"}'
-```
+## Deploy — Push and Ship
 
-The deploy pipeline clones the repo, builds a container, and routes traffic to it. Use the `/xhost:deploy` skill to automate both steps.
+Commit, push, and trigger a deploy.
 
-The production channel is bound to `branch:master` by default.
+1. **Check XHOST_TOKEN** — if not set, guide through signup/login.
+2. **Check xhost remote** — `git remote get-url xhost`. If missing, run the Init flow above.
+3. **Check for uncommitted changes** — `git status --short`. If changes exist, stage all and commit with a descriptive message.
+4. **Push**:
+   ```
+   git push xhost master
+   ```
+5. **Get the SHA**: `SHA=$(git rev-parse HEAD)`
+6. **Find the app and channel** — list apps, match `repo_url` against the xhost remote URL (strip the token):
+   ```
+   curl -sf "${XHOST_API_URL:-https://api.xhostd.com}/apps" -H "Authorization: Bearer $XHOST_TOKEN"
+   ```
+7. **Trigger the deploy**:
+   ```
+   curl -sf -X POST "${XHOST_API_URL:-https://api.xhostd.com}/apps/<app_id>/channels/<channel_id>/deploy" \
+     -H "Authorization: Bearer $XHOST_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"sha":"<SHA>"}'
+   ```
+8. **Check deploy log** (optional):
+   ```
+   curl -sf "${XHOST_API_URL:-https://api.xhostd.com}/apps/<app_id>/channels/<channel_id>/logs?deploy=<deploy_id>" \
+     -H "Authorization: Bearer $XHOST_TOKEN"
+   ```
+9. Report: **"Deployed! Live at https://\<hostname\>"**
 
-## Preview Branches
+---
 
-To deploy a preview of a feature branch:
+## Preview — Deploy a Branch
 
-1. Ensure a `branch:*` wildcard channel exists on the app. If not, create one:
-   ```bash
-   curl -sf -X POST "${XHOST_API_URL}/apps/<app_id>/channels" \
+Push the current branch and get a preview URL.
+
+1. **Check XHOST_TOKEN** and **xhost remote** — same as Deploy.
+2. **Get current branch**. If on `master`, warn: "This deploys to production. Consider creating a feature branch first." Ask if they want to continue.
+3. **Find the app** via `GET /apps`, match against xhost remote.
+4. **Check for a `branch:*` wildcard channel**:
+   ```
+   curl -sf "${XHOST_API_URL:-https://api.xhostd.com}/apps/<app_id>/channels" \
+     -H "Authorization: Bearer $XHOST_TOKEN"
+   ```
+5. If none exists, **create one**:
+   ```
+   curl -sf -X POST "${XHOST_API_URL:-https://api.xhostd.com}/apps/<app_id>/channels" \
      -H "Authorization: Bearer $XHOST_TOKEN" \
      -H "Content-Type: application/json" \
      -d '{"name":"wildcard","git_ref_binding":"branch:*"}'
    ```
+6. **Commit, push the branch, get SHA, trigger deploy** (same as Deploy but with the branch name instead of master).
+7. **Wait ~5s**, then list channels to find the new `preview-*` channel and its hostname.
+8. Report: **"Preview deployed! URL: https://\<preview_hostname\>"**
 
-2. Push the branch:
-   ```bash
-   git push xhost feature-branch
+Preview channels are cleaned up automatically when the branch is deleted from git.
+
+---
+
+## Status — Check Apps and Deploys
+
+1. **Check XHOST_TOKEN**.
+2. **List apps**:
    ```
-
-3. Trigger a deploy for the branch (the fan-out creates a `preview-<slug>` child channel automatically when the deploy API resolves the wildcard binding):
-   ```bash
-   SHA=$(git rev-parse HEAD)
-   curl -sf -X POST "${XHOST_API_URL}/apps/<app_id>/channels/<channel_id>/deploy" \
-     -H "Authorization: Bearer $XHOST_TOKEN" \
-     -H "Content-Type: application/json" \
-     -d '{"sha":"'"$SHA"'"}'
+   curl -sf "${XHOST_API_URL:-https://api.xhostd.com}/apps" -H "Authorization: Bearer $XHOST_TOKEN"
    ```
-   List channels after a few seconds to find the preview URL.
+3. If the `xhost` remote exists, show only the matching app. Otherwise show all.
+4. For each app, display:
+   - App name and template
+   - For each channel: name, URL (`https://<hostname>`), branch binding, current SHA (first 7 chars), status
 
-Preview channels are cleaned up automatically when the branch is deleted from git (via the sweeper).
+---
 
-## Checking Status
+## Common Patterns
 
-```bash
-curl -sf "${XHOST_API_URL}/apps" -H "Authorization: Bearer $XHOST_TOKEN"
-```
+Use these across all operations:
 
-This returns all apps with their channels. Each channel includes:
-- `hostname` — the URL where the channel is served (present as `https://<hostname>`)
-- `git_ref_binding` — which branch is bound for deploys (e.g., `branch:master`, `branch:*`, `branch:feature-x`)
-- `current_sha` — the currently deployed commit (first 7 chars), or null if not yet deployed
-- `status` — one of: `provisioning`, `running`
-
-## Key API Details
-
-- **Base URL**: `${XHOST_API_URL:-https://api.xhostd.com}`
-- **Auth header**: `Authorization: Bearer $XHOST_TOKEN`
-- **Error envelope**: `{"error": {"code": "...", "message": "..."}}` — always show the `message` to the user
-- **Token format**: `xh_` prefix
-- **Invite format**: `xi_` prefix
-
-Common error codes:
-- `token_invalid` — bad or missing token
-- `bad_request` — validation failure (message has details)
-- `not_found` — app or channel does not exist
-- `scope_denied` — token lacks required permission
-
-## Slash Command
-
-For explicit step-by-step workflows, users can invoke `/xhost:login`, `/xhost:signup`, `/xhost:init`, `/xhost:deploy`, `/xhost:preview`, `/xhost:status`.
+- **API base URL**: `${XHOST_API_URL:-https://api.xhostd.com}`
+- **Auth header**: `-H "Authorization: Bearer $XHOST_TOKEN"`
+- **Error envelope**: `{"error": {"code": "...", "message": "..."}}` — always show `message` to the user
+- **App resolution**: match the `xhost` git remote URL (strip token) against `repo_url` from `GET /apps`
+- **Hostnames**: always present as `https://<hostname>`
+- **Two-step deploy**: push stores code; `POST /apps/{id}/channels/{id}/deploy` triggers the build
+- **DNS label rules**: `^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`, max 40 chars
+- **Reserved prefixes**: `git`, `api`, `www`, `admin`, `preview`, `staging`
 
 ## References
 
