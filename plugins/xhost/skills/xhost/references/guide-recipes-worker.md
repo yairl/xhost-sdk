@@ -264,8 +264,8 @@ started: 2026-08-02T15:24:39Z   finished: 2026-08-02T15:24:47Z
 ...
 [2026-08-02T15:24:43+00:00] [build] image 948.68 MB total, 0.02 MB charged — base xhost-runtime:node22-py313 exempt
 [2026-08-02T15:24:45+00:00] channel snapshot saved: 0.01 MB
-[2026-08-02T15:24:45+00:00] start_static_site template=app
-[2026-08-02T15:24:46+00:00] start_static_site ok: container=5013ff44274ae4b2e1bca63419915c4d3b8b6923d81a3f86002f2f2fba8065af
+[2026-08-02T15:24:45+00:00] start_container template=app
+[2026-08-02T15:24:46+00:00] start_container ok: container=5013ff44274ae4b2e1bca63419915c4d3b8b6923d81a3f86002f2f2fba8065af
 [2026-08-02T15:24:46+00:00] health_check container=5013ff44274ae4b2e1bca63419915c4d3b8b6923d81a3f86002f2f2fba8065af port=3000 timeout=120.0s
 [2026-08-02T15:24:46+00:00] [container] [xhost] starting launch.sh (XHOST_HTTP_PORT=3000) ...
 [2026-08-02T15:24:46+00:00] health_check ok
@@ -282,9 +282,10 @@ Read five facts in that log.
 the warm base image. A worker that uses only the standard library therefore has
 an image cost near zero.
 
-**`start_static_site template=app`.** `start_static_site` is the platform's
-internal name for this step, on every template. It is not a claim that this app
-is a static site. The same line names the real template: `template=app`.
+**`start_container template=app`.** The line names the template the platform
+used to start the container. Check it first when a deploy behaves like
+the wrong shape of app: the `app` template runs your `launch.sh`, and the
+`static` template serves the committed files through nginx instead.
 
 **`health_check ... port=3000 timeout=120.0s`, and `health_check ok` in the
 same second.** The platform publishes the HTTP health port on every template,

@@ -210,7 +210,7 @@ started: 2026-07-31T17:33:49Z   finished: 2026-07-31T17:33:59Z
 [2026-07-31T17:33:53+00:00] [build] queue wait 0s, build 3s
 [2026-07-31T17:33:53+00:00] [build] image 962.13 MB total, 13.48 MB charged — base xhost-runtime:node22-py313 exempt
 [2026-07-31T17:33:54+00:00] channel snapshot saved: 0.00 MB
-[2026-07-31T17:33:55+00:00] start_static_site template=app
+[2026-07-31T17:33:55+00:00] start_container template=app
 [2026-07-31T17:33:56+00:00] health_check container=720d612faa30... port=3000 timeout=120.0s
 [2026-07-31T17:33:56+00:00] [container] [xhost] starting launch.sh (XHOST_HTTP_PORT=3000) ...
 [2026-07-31T17:33:58+00:00] [container] INFO:     Application startup complete.

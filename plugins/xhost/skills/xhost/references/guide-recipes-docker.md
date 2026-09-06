@@ -360,7 +360,7 @@ started: 2026-07-31T18:38:41Z   finished: 2026-07-31T18:38:55Z
 [2026-07-31T18:38:43+00:00] [build] queue wait 0s, build 2s
 [2026-07-31T18:38:43+00:00] [build] image 262.09 MB total, 94.63 MB charged — base python:3.13-slim exempt
 [2026-07-31T18:38:45+00:00] channel snapshot saved: 0.00 MB
-[2026-07-31T18:38:46+00:00] start_static_site template=docker
+[2026-07-31T18:38:46+00:00] start_container template=docker
 [2026-07-31T18:38:46+00:00] health_check container=6f0c1f9382cb... port=3000 timeout=120.0s
 [2026-07-31T18:38:50+00:00] [container] INFO  [alembic.runtime.migration] Running upgrade  -> 0001, create notes
 [2026-07-31T18:38:50+00:00] [container] INFO  [alembic.runtime.migration] Running upgrade 0001 -> 0002, add done flag to notes

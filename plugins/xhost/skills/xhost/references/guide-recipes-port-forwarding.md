@@ -381,7 +381,7 @@ deploy 06ce028b — success (sha 75087f0e4cc1)
 started: 2026-08-01T08:40:03Z   finished: 2026-08-01T08:40:09Z
 
 [...]
-[2026-08-01T08:40:08+00:00] start_static_site template=app
+[2026-08-01T08:40:08+00:00] start_container template=app
 [2026-08-01T08:40:08+00:00] health_check container=423fc265... port=3000 timeout=120.0s
 [2026-08-01T08:40:08+00:00] [container] [xhost] starting launch.sh (XHOST_HTTP_PORT=3000) ...
 [2026-08-01T08:40:09+00:00] health_check ok
@@ -735,7 +735,7 @@ The deploy stopped the held session, and the logs agree to the second. From
 deploy `2dd5f25e-bf6d-4d99-a1ea-9708e317b727`:
 
 ```text
-[2026-08-01T09:16:01+00:00] start_static_site ok: container=627ae2a5c5dd...
+[2026-08-01T09:16:01+00:00] start_container ok: container=627ae2a5c5dd...
 [2026-08-01T09:16:01+00:00] [container] listening on 0.0.0.0:7000
 [2026-08-01T09:16:02+00:00] stop_and_remove old container=423fc265...
 [2026-08-01T09:16:07+00:00] stop_and_remove ok
