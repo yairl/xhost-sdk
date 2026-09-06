@@ -1125,7 +1125,7 @@ Unknown fields are refused: this route answers **422** for a body that holds a f
 }
 ```
 
-Then push: `git remote add xhost-ssh "git@git.xhostd.com:<username>/<app>.git"` and `GIT_SSH_COMMAND="ssh -i ~/.ssh/xhost_ed25519" git push xhost-ssh HEAD:master`. The platform also notifies the user about the new key, with its label and fingerprint.
+Then push: `git remote add xhost-ssh "git@git.xhostd.com:<username>/<app>.git"` and `GIT_SSH_COMMAND="ssh -i ~/.ssh/xhost_ed25519 -o IdentitiesOnly=yes" git push xhost-ssh HEAD:master`, where `-o IdentitiesOnly=yes` stops ssh from offering another key it finds first. The platform also notifies the user about the new key, with its label and fingerprint.
 
 **Errors:**
 - `bad_request` (400) — the line is no valid OpenSSH public key, or the label is longer than 64 characters

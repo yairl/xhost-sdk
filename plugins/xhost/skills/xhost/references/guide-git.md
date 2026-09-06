@@ -96,7 +96,7 @@ Then set the SSH remote and push:
 
 ```sh
 git remote add xhost-ssh "git@git.xhostd.com:<username>/<app>.git"
-GIT_SSH_COMMAND="ssh -i ~/.ssh/xhost_ed25519" git push xhost-ssh HEAD:master
+GIT_SSH_COMMAND="ssh -i ~/.ssh/xhost_ed25519 -o IdentitiesOnly=yes" git push xhost-ssh HEAD:master
 ```
 
 The `HEAD:master` refspec is deliberate. xhostd binds the prod channel to
@@ -104,6 +104,8 @@ the `master` branch. A new local repo often uses `main` as its default
 branch. `HEAD:master` pushes the current branch to `master`, whatever
 its local name is. `GIT_SSH_COMMAND` names the private half. The key
 sits outside a default path, so every SSH push needs that variable.
+`-o IdentitiesOnly=yes` stops ssh from offering another key it finds
+first.
 
 `list_ssh_keys` returns the keys of your account, newest first. It
 returns metadata only: `id`, `label`, `algo`, `fingerprint`,

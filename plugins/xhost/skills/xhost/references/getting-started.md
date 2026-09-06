@@ -53,10 +53,10 @@ ssh-keygen -t ed25519 -N "" -f ~/.ssh/xhost_ed25519   # only if the file is abse
 # then: mcp__xhost__register_ssh_key(public_key=<content of ~/.ssh/xhost_ed25519.pub>, label="this machine")
 git init && git add -A && git commit -m "initial site"
 git remote add xhost-ssh "git@git.xhostd.com:alice/lisbon-coffee.git"
-GIT_SSH_COMMAND="ssh -i ~/.ssh/xhost_ed25519" git push xhost-ssh HEAD:master
+GIT_SSH_COMMAND="ssh -i ~/.ssh/xhost_ed25519 -o IdentitiesOnly=yes" git push xhost-ssh HEAD:master
 ```
 
-An SSH push needs no token — the `repo_url` from step 2 gives the username and the app name.
+An SSH push needs no token — the `repo_url` from step 2 gives the username and the app name. `-o IdentitiesOnly=yes` stops ssh from offering another key it finds first.
 
 Always use exactly the path `~/.ssh/xhost_ed25519` — never the project directory, and never a per-project, per-app or per-tool suffix. It sits in `$HOME`, so every Claude Code session, IDE window and project on the machine reuses the one key instead of registering another.
 

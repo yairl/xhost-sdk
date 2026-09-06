@@ -33,6 +33,7 @@ not need to read the other guides first.
 | [Ship without git](https://docs.xhostd.com/guides/recipes-commit-files) | A site put onto the app by tool call, where there is no shell to run `git` in | Ready |
 | [Best practices](https://docs.xhostd.com/guides/bkm) | The habits that keep a deploy free of surprises | Ready |
 | [Diagnose a slow app](https://docs.xhostd.com/guides/diagnose-slowness) | The cause of a slow or unhealthy channel, and the action for it | Ready |
+| [Client blocks a deploy](https://docs.xhostd.com/guides/client-blocked-deploy) | The way to clear a `deploy` call your own client refused before it reached xhostd | Ready |
 | Custom domain | Your own domain, with HTTPS | Coming soon |
 
 ## The parts of a recipe
